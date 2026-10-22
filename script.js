@@ -6,11 +6,11 @@
   const profileKey = 'tempo-profile-v1';
   const baseTitle = 'Study Mate — 나만의 공부 타이머';
   const characters = [
-    { id: 'character-1', name: '케로로', image: 'images/c1.png', messages: ['{nickname}, 오늘 공부 임무도 훌륭히 해냈어! 케로케로링~ 🐸', '{nickname}, 한 걸음씩 쌓은 공부가 실력이 되는 거야!', '{nickname}, 집중력 발휘 성공이야! 정말 대단해.', '케로케로링~ 오늘도 목표를 향해 전진했어!', '{nickname}, 공부 임무 완료야! 다음 임무도 힘내자.'] },
-    { id: 'character-2', name: '아카아시', image: 'images/c2.png', messages: ['{nickname}, 오늘도 차분히 집중했어. 쌓인 시간은 분명 도움이 될 거야.', '한 번에 많이 하지 않아도 괜찮아, {nickname}. 꾸준히 이어가는 게 중요해.', '{nickname}, 계획한 공부를 잘 마쳤네. 스스로를 칭찬해도 좋아.', '오늘의 노력이 내일의 자신감을 만들어줄 거야. 수고했어, {nickname}.', '{nickname}, 지금처럼 한 걸음씩 가면 돼. 오늘도 잘 해냈어.'] },
-    { id: 'character-3', name: '쿠로오', image: 'images/c3.png', messages: ['오야오야, {nickname}. 오늘 집중 꽤 잘했잖아? 이 페이스 계속 가보자고.', '한 문제씩 풀다 보면 결국 끝까지 가는 거야. 오늘도 제법인데, {nickname}.', '{nickname}, 방금 공부한 내용이 다음 실력으로 이어질 거야. 잘했어!', '오, 목표에 한 발 가까워졌네. {nickname}, 계속 응원할 테니까 힘내.', '오늘도 해냈구나, {nickname}. 꾸준함이 제일 무서운 무기라니까.'] },
-    { id: 'character-4', name: '우시지마', image: 'images/c4.png', messages: ['{nickname}, 오늘 정한 공부를 끝냈다. 목표에 가까워졌군.', '집중한 시간은 쌓인다. 오늘의 노력도 의미가 있다, {nickname}.', '{nickname}, 한 세션을 해냈다. 다음 목표도 이룰 수 있다.', '매일의 반복이 실력을 만든다. 오늘도 잘 해냈다.', '좋은 집중이었다, {nickname}. 이대로 계속 나아가면 된다.'] },
-    { id: 'character-5', name: '오사무', image: 'images/c5.png', messages: ['{nickname}, 오늘 공부 꽤 했네. 차근차근 쌓아가면 된다 아이가.', '와이 보기에도 오늘은 집중 잘했데이, {nickname}. 그 정도면 충분하다.', '{nickname}, 한 번에 다 하려 하지 말고 하나씩 해라. 오늘도 잘했다.', '공부는 꾸준히 하는 게 제일 어렵다 아이가. 오늘 해낸 것도 대단한 기다.', '{nickname}, 오늘 노력은 헛되지 않다. 다음에도 네 페이스대로 해라.'] }
+    { id: 'character-1', name: '케로로', image: 'c1.png', messages: ['{nickname}, 오늘 공부 임무도 훌륭히 해냈어! 케로케로링~ 🐸', '{nickname}, 한 걸음씩 쌓은 공부가 실력이 되는 거야!', '{nickname}, 집중력 발휘 성공이야! 정말 대단해.', '케로케로링~ 오늘도 목표를 향해 전진했어!', '{nickname}, 공부 임무 완료야! 다음 임무도 힘내자.'] },
+    { id: 'character-2', name: '아카아시', image: 'c2.png', messages: ['{nickname}, 오늘도 차분히 집중했어. 쌓인 시간은 분명 도움이 될 거야.', '한 번에 많이 하지 않아도 괜찮아, {nickname}. 꾸준히 이어가는 게 중요해.', '{nickname}, 계획한 공부를 잘 마쳤네. 스스로를 칭찬해도 좋아.', '오늘의 노력이 내일의 자신감을 만들어줄 거야. 수고했어, {nickname}.', '{nickname}, 지금처럼 한 걸음씩 가면 돼. 오늘도 잘 해냈어.'] },
+    { id: 'character-3', name: '쿠로오', image: 'c3.png', messages: ['오야오야, {nickname}. 오늘 집중 꽤 잘했잖아? 이 페이스 계속 가보자고.', '한 문제씩 풀다 보면 결국 끝까지 가는 거야. 오늘도 제법인데, {nickname}.', '{nickname}, 방금 공부한 내용이 다음 실력으로 이어질 거야. 잘했어!', '오, 목표에 한 발 가까워졌네. {nickname}, 계속 응원할 테니까 힘내.', '오늘도 해냈구나, {nickname}. 꾸준함이 제일 무서운 무기라니까.'] },
+    { id: 'character-4', name: '우시지마', image: 'c4.png', messages: ['{nickname}, 오늘 정한 공부를 끝냈다. 목표에 가까워졌군.', '집중한 시간은 쌓인다. 오늘의 노력도 의미가 있다, {nickname}.', '{nickname}, 한 세션을 해냈다. 다음 목표도 이룰 수 있다.', '매일의 반복이 실력을 만든다. 오늘도 잘 해냈다.', '좋은 집중이었다, {nickname}. 이대로 계속 나아가면 된다.'] },
+    { id: 'character-5', name: '오사무', image: 'c5.png', messages: ['{nickname}, 오늘 공부 꽤 했네. 차근차근 쌓아가면 된다 아이가.', '와이 보기에도 오늘은 집중 잘했데이, {nickname}. 그 정도면 충분하다.', '{nickname}, 한 번에 다 하려 하지 말고 하나씩 해라. 오늘도 잘했다.', '공부는 꾸준히 하는 게 제일 어렵다 아이가. 오늘 해낸 것도 대단한 기다.', '{nickname}, 오늘 노력은 헛되지 않다. 다음에도 네 페이스대로 해라.'] }
   ];
 
   const safeRead = (key, fallback) => {
