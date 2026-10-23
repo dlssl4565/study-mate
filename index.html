@@ -89,13 +89,14 @@
 
       <section class="session-summary" aria-label="오늘의 공부 기록">
         <div class="summary-heading">
-          <span class="section-kicker">오늘의 리듬</span>
-          <span class="date-pill" id="date-pill">오늘</span>
+          <button class="date-nav" id="date-nav" type="button" aria-label="월간 공부 기록 열기" aria-haspopup="dialog" aria-pressed="false">기록</button>
+          <span class="section-kicker" id="rhythm-title">오늘의 리듬</span>
+          <button class="date-pill" id="date-pill" type="button" aria-label="오늘 공부 기록 보기" aria-pressed="true">오늘</button>
         </div>
         <div class="rhythm-key">
           <span><i class="key-study"></i>공부</span>
           <span><i class="key-break"></i>휴식</span>
-          <small>한 칸 = 1분</small>
+          <small>한 칸 = 10분</small>
         </div>
         <div class="time-grid" id="time-grid" role="img" aria-label="오늘 공부 0분, 휴식 0분"></div>
         <div class="rhythm-stats">
@@ -167,6 +168,22 @@
       <span class="section-kicker" id="completion-title">집중 세션 완료</span>
       <p class="completion-message" id="completion-message"></p>
       <button class="save-button completion-button" id="completion-continue" type="button">계속하기</button>
+    </div>
+  </section>
+
+  <section class="completion-backdrop calendar-backdrop" id="calendar-dialog" role="dialog" aria-modal="true" aria-labelledby="calendar-title" hidden>
+    <div class="calendar-card">
+      <button class="completion-close" id="calendar-close" type="button" aria-label="달력 닫기">×</button>
+      <span class="section-kicker" id="calendar-title">공부 기록</span>
+      <div class="calendar-month-nav">
+        <button class="calendar-month-button" id="calendar-prev" type="button" aria-label="이전 달">‹</button>
+        <strong id="calendar-month-label"></strong>
+        <button class="calendar-month-button" id="calendar-next" type="button" aria-label="다음 달">›</button>
+      </div>
+      <div class="calendar-weekdays" aria-hidden="true">
+        <span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span><span>일</span>
+      </div>
+      <div class="calendar-days" id="calendar-days"></div>
     </div>
   </section>
 </body>
