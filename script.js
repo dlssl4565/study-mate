@@ -3,6 +3,7 @@
   const $ = (selector) => document.querySelector(selector);
   const settingsKey = 'tempo-settings-v1';
   const progressKey = 'tempo-progress-v1';
+  const historyKey = 'tempo-history-v1';
   const profileKey = 'tempo-profile-v1';
   const baseTitle = 'Study Mate — 나만의 공부 타이머';
   const characters = [
@@ -21,7 +22,7 @@
     }
   };
 
-  // 저장 공간이 막혀 있거나(시크릿 모드 등) 가득 차도 타이머가 멈추지 않게 보호
+  // 저장 공간이 막혀 있거나 가득 차도 타이머가 멈추지 않게 보호
   const safeWrite = (key, value) => {
     try {
       localStorage.setItem(key, JSON.stringify(value));
@@ -43,11 +44,18 @@
 
   let profile = safeRead(profileKey, null);
   let chosenCharacter = profile?.character || 'character-1';
-  let progress = safeRead(progressKey, emptyProgress(getTodayKey()));
-  if (progress.date !== getTodayKey()) progress = emptyProgress(getTodayKey());
-  if (!Array.isArray(progress.blocks)) {
-    progress.blocks = Array.from({ length: Math.max(0, progress.focusMinutes || 0) }, () => 'focus');
+  const savedProgress = safeRead(progressKey, emptyProgress(getTodayKey()));
+  let history = safeRead(historyKey, {});
+  if (!history || typeof history !== 'object' || Array.isArray(history)) history = {};
+  if (!Array.isArray(savedProgress.blocks)) {
+    savedProgress.blocks = Array.from({ length: Math.max(0, savedProgress.focusMinutes || 0) }, () => 'focus');
   }
+  if (savedProgress.date && !history[savedProgress.date]) history[savedProgress.date] = savedProgress;
+  let progress = history[getTodayKey()] || (savedProgress.date === getTodayKey() ? savedProgress : emptyProgress(getTodayKey()));
+  if (!Array.isArray(progress.blocks)) progress.blocks = [];
+  history[getTodayKey()] = progress;
+  let viewedDate = getTodayKey();
+  let calendarMonth = new Date();
 
   let mode = 'focus';
   let remaining = settings.focus * 60;
@@ -76,10 +84,72 @@
   function rollDayIfNeeded() {
     const key = getTodayKey();
     if (progress.date === key) return;
+    history[progress.date] = progress;
     progress = emptyProgress(key);
+    history[key] = progress;
+    viewedDate = key;
     persist();
     updateProgress();
     renderToday();
+  }
+
+  function shiftDate(date, amount) {
+    const [year, month, day] = date.split('-').map(Number);
+    const shifted = new Date(year, month - 1, day + amount);
+    return `${shifted.getFullYear()}-${String(shifted.getMonth() + 1).padStart(2, '0')}-${String(shifted.getDate()).padStart(2, '0')}`;
+  }
+
+  function changeViewedDate(date) {
+    viewedDate = date;
+    const isToday = viewedDate === getTodayKey();
+    $('#date-nav').setAttribute('aria-pressed', String(!isToday));
+    $('#date-pill').setAttribute('aria-pressed', String(isToday));
+    updateProgress();
+  }
+
+  function openCalendar() {
+    const [year, month, day] = viewedDate.split('-').map(Number);
+    calendarMonth = new Date(year, month - 1, day, 12);
+    renderCalendar();
+    $('#calendar-dialog').hidden = false;
+    $('#calendar-close').focus();
+  }
+
+  function closeCalendar() {
+    $('#calendar-dialog').hidden = true;
+    $('#date-nav').focus();
+  }
+
+  function renderCalendar() {
+    const year = calendarMonth.getFullYear();
+    const month = calendarMonth.getMonth();
+    const today = getTodayKey();
+    const monthStart = new Date(year, month, 1);
+    const offset = (monthStart.getDay() + 6) % 7;
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const monthName = new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: 'long' }).format(monthStart);
+    $('#calendar-month-label').textContent = monthName;
+
+    const cells = Array.from({ length: offset }, () => '<span class="calendar-empty" aria-hidden="true"></span>');
+    for (let day = 1; day <= daysInMonth; day += 1) {
+      const date = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const record = history[date] || (progress.date === date ? progress : null);
+      const studied = Boolean(record && ((record.focusMinutes || 0) > 0 || record.blocks?.includes('focus')));
+      const isToday = date === today;
+      const isSelected = date === viewedDate;
+      const accessibleDate = new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }).format(new Date(year, month, day));
+      cells.push(`<button class="calendar-day${studied ? ' has-study' : ''}${isToday ? ' is-today' : ''}${isSelected ? ' is-selected' : ''}" type="button" data-date="${date}" aria-label="${accessibleDate}${studied ? ', 공부 기록 있음' : ''}" aria-pressed="${isSelected}"><span class="calendar-day-number">${day}</span></button>`);
+    }
+    $('#calendar-days').innerHTML = cells.join('');
+    document.querySelectorAll('.calendar-day').forEach(button => button.addEventListener('click', () => {
+      changeViewedDate(button.dataset.date);
+      closeCalendar();
+    }));
+  }
+
+  function shiftCalendarMonth(amount) {
+    calendarMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + amount, 1, 12);
+    renderCalendar();
   }
 
   function renderCharacters() {
@@ -143,14 +213,12 @@
     pauseTimer();
     clearInterval(companionTimer);
     updateDisplay();
-    // 프로필이 이미 있으면 "바꿔볼래?" 문구를 보여줌
     showWelcome(Boolean(profile));
   }
 
   function updateCompanionMessage(character) {
     const list = character.messages;
     let index = Math.floor(Math.random() * list.length);
-    // 같은 문장이 연달아 나오지 않게
     if (list.length > 1 && index === lastMessageIndex) index = (index + 1) % list.length;
     lastMessageIndex = index;
     $('#companion-message').textContent = list[index].replaceAll('{nickname}', profile?.nickname || '친구');
@@ -170,6 +238,8 @@
   function persist() {
     safeWrite(settingsKey, settings);
     safeWrite(progressKey, progress);
+    history[progress.date] = progress;
+    safeWrite(historyKey, history);
   }
 
   function applyTheme() {
@@ -180,22 +250,31 @@
   }
 
   function updateProgress() {
-    const breakMinutes = progress.blocks.filter(block => block === 'break').length;
-    $('#completed-count').textContent = progress.completed;
+    const displayProgress = viewedDate === getTodayKey() ? progress : (history[viewedDate] || emptyProgress(viewedDate));
+    const breakMinutes = displayProgress.blocks.filter(block => block === 'break').length;
+    const rhythmTitle = viewedDate === getTodayKey()
+      ? '오늘의 리듬'
+      : `${new Intl.DateTimeFormat('ko-KR', { month: 'long', day: 'numeric' }).format(new Date(`${viewedDate}T12:00:00`))} 리듬`;
+    $('#rhythm-title').textContent = rhythmTitle;
+    $('#completed-count').textContent = displayProgress.completed;
     $('#goal-count').textContent = settings.goal;
-    $('#focus-total').textContent = `${progress.focusMinutes}분`;
+    $('#focus-total').textContent = `${displayProgress.focusMinutes}분`;
     $('#break-total').textContent = `${breakMinutes}분`;
-    $('#goal-fill').style.width = `${Math.min(100, progress.completed / settings.goal * 100)}%`;
-    $('#time-grid').setAttribute('aria-label', `오늘 공부 ${progress.focusMinutes}분, 휴식 ${breakMinutes}분`);
-    renderTimeGrid();
+    $('#goal-fill').style.width = `${Math.min(100, displayProgress.completed / settings.goal * 100)}%`;
+    const dayLabel = viewedDate === getTodayKey() ? '오늘' : '선택한 날짜';
+    $('#time-grid').setAttribute('aria-label', `${dayLabel} 공부 ${displayProgress.focusMinutes}분, 휴식 ${breakMinutes}분`);
+    renderTimeGrid(displayProgress);
   }
 
-  function renderTimeGrid() {
-    const blocks = progress.blocks;
-    const capacity = Math.max(120, Math.min(1440, Math.ceil(Math.max(blocks.length, 1) / 120) * 120));
-    const cells = Array.from({ length: capacity }, (_, i) => {
-      const type = blocks[i];
-      return `<span class="minute-cell ${type === 'focus' ? 'is-study' : type === 'break' ? 'is-break' : ''}" aria-hidden="true"></span>`;
+  function renderTimeGrid(dayProgress) {
+    const blocks = dayProgress.blocks;
+    const cells = Array.from({ length: 144 }, (_, i) => {
+      const tenMinutes = blocks.slice(i * 10, (i + 1) * 10);
+      const focusCount = tenMinutes.filter(block => block === 'focus').length;
+      const breakCount = tenMinutes.filter(block => block === 'break').length;
+      const type = tenMinutes.length < 10 ? '' : focusCount >= breakCount ? 'focus' : 'break';
+      const label = type === 'focus' ? '공부' : type === 'break' ? '휴식' : '기록 없음';
+      return `<span class="minute-cell ${type === 'focus' ? 'is-study' : type === 'break' ? 'is-break' : ''}" title="${i + 1}번째 10분 · ${label}" aria-hidden="true"></span>`;
     });
     $('#time-grid').innerHTML = cells.join('');
   }
@@ -245,8 +324,6 @@
     updateDisplay();
   }
 
-  // 사용자가 버튼을 누른 순간(클릭)에 오디오를 미리 준비해야
-  // 탭이 백그라운드일 때도 알람이 브라우저에 막히지 않음
   function ensureAudio() {
     try {
       audioContext ||= new (window.AudioContext || window.webkitAudioContext)();
@@ -291,7 +368,6 @@
       persist();
       updateProgress();
       const next = progress.completed % settings.cycle === 0 ? 'long' : 'short';
-      // setMode가 안내 문구를 덮어쓰므로, 반드시 setMode 다음에 문구를 설정
       setMode(next);
       $('#helper-text').textContent = '집중 세션을 마쳤어. 잠깐 충전하자.';
       showCompletion();
@@ -305,7 +381,6 @@
     if (settings.autoStart) startTimer();
   }
 
-  // 분 단위 기록: 몇 초가 지났든(백그라운드에서 한꺼번에 지나도) 60초마다 한 칸씩 추가
   function addActivity(seconds) {
     rollDayIfNeeded();
     activitySeconds += seconds;
@@ -322,8 +397,6 @@
     }
   }
 
-  // 남은 시간을 "끝나는 시각" 기준으로 계산해서,
-  // 탭이 백그라운드로 가서 setInterval이 느려져도 시간이 밀리지 않게 함
   function tick() {
     if (!running) return;
     const next = Math.max(0, Math.ceil((endTime - Date.now()) / 1000));
@@ -347,8 +420,8 @@
 
   function pauseTimer() {
     if (!running) return;
-    tick(); // 멈추기 직전까지의 시간을 먼저 반영
-    if (!running) return; // tick에서 세션이 끝났다면 이미 정리됨
+    tick();
+    if (!running) return;
     stopTimer();
     updateDisplay();
   }
@@ -391,7 +464,7 @@
     const wasOpen = panel.classList.contains('open');
     panel.classList.remove('open');
     panel.setAttribute('aria-hidden', 'true');
-    panel.inert = true; // 닫힌 패널 안의 입력칸이 Tab으로 선택되지 않게
+    panel.inert = true;
     $('#overlay').classList.remove('visible');
     setTimeout(() => {
       if (!panel.classList.contains('open')) $('#overlay').hidden = true;
@@ -399,7 +472,6 @@
     if (wasOpen) $('#settings-open').focus();
   }
 
-  // values를 넘기면 저장하지 않고 폼에만 채워 넣음 (기본값 미리보기용)
   function fillForm(values = settings) {
     const form = $('#settings-form');
     Object.entries(values).forEach(([key, value]) => {
@@ -428,7 +500,6 @@
     settings.autoStart = form.elements.namedItem('autoStart').checked;
     settings.sound = form.elements.namedItem('sound').checked;
 
-    // 아직 시작하지 않은 상태라면 바뀐 시간을 바로 반영
     if (!running && settings[mode] !== previous[mode] && remaining === previous[mode] * 60) {
       remaining = settings[mode] * 60;
     }
@@ -471,9 +542,16 @@
   $('#settings-close').addEventListener('click', closeSettings);
   $('#overlay').addEventListener('click', closeSettings);
   $('#back-to-welcome').addEventListener('click', goBackToWelcome);
+  $('#date-nav').addEventListener('click', openCalendar);
+  $('#date-pill').addEventListener('click', () => changeViewedDate(getTodayKey()));
+  $('#calendar-close').addEventListener('click', closeCalendar);
+  $('#calendar-dialog').addEventListener('click', event => {
+    if (event.target === $('#calendar-dialog')) closeCalendar();
+  });
+  $('#calendar-prev').addEventListener('click', () => shiftCalendarMonth(-1));
+  $('#calendar-next').addEventListener('click', () => shiftCalendarMonth(1));
   $('#settings-form').addEventListener('submit', saveForm);
   $('#reset-settings').addEventListener('click', () => {
-    // 저장 전에는 실제 설정을 건드리지 않고 폼만 기본값으로 채움
     fillForm(defaults);
     notify('기본값을 채워뒀어. 저장을 눌러 적용해.');
   });
@@ -506,7 +584,6 @@
     }
   });
 
-  // 탭으로 돌아오면 즉시 시간을 맞춤
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden && running) tick();
   });
@@ -521,6 +598,7 @@
     if (event.key === 'Escape') {
       closeSettings();
       closeCompletion();
+      if (!$('#calendar-dialog').hidden) closeCalendar();
     }
     if (event.code === 'Space' && canUseSpaceShortcut()) {
       event.preventDefault();
